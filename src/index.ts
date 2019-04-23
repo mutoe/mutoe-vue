@@ -1,15 +1,15 @@
 class Vue {
-  $options: Options = {}
+  private $options: IOptions
 
-  constructor(options: object) {
+  constructor(options: IOptions = {}) {
     this.$options = options
 
     const proxy = this.initDataProxy()
     return proxy
   }
 
-  initDataProxy() {
-    const data = this.$options.data
+  private initDataProxy() {
+    const data = this.$options.data()
 
     return new Proxy(this, {
       set(_, key, value) {
@@ -25,6 +25,6 @@ class Vue {
 
 export default Vue
 
-interface Options {
-  data?: any
+interface IOptions {
+  data: () => Record<string, any>
 }
