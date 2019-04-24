@@ -28,6 +28,22 @@ class Vue {
     return this
   }
 
+  update() {
+    const { render } = this.$options
+
+    const vnode = render.call(this.proxy, this.createElement)
+    this.$el = this.patch(null, vnode)
+
+    const parent = this.$el.parentElement
+    if (parent) {
+      parent.replaceChild(this.$el)
+    }
+  }
+
+  patch(oldVNode, newVNode) {
+    return this.createDom(newVNode)
+  }
+
   createElement(tag, data, children) {
     return new VNode(tag, data, children)
   }
@@ -44,8 +60,8 @@ class Vue {
       el.addEventListener(key, events[key])
     }
 
-    if (typeof vnode.children === 'string') {
-      el.textContent = vnode.children
+    if (!Array.isArray(vnode.children)) {
+      el.textContent = String(vnode.children)
     } else {
       vnode.children.forEach((child) => {
         if (typeof child === 'string') {
@@ -74,7 +90,10 @@ class Vue {
       },
       get: (_, key) => {
         const methods = this.$options.methods || {}
-        if (key in data) return data[key]
+        if (key in data) {
+          this.$watch(key, this.update.bind(this))
+          return data[key]
+        }
         if (key in methods) return methods[key].bind(this.proxy)
         return this[key]
       },
