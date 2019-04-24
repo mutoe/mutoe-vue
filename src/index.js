@@ -38,6 +38,12 @@ class Vue {
       el.setAttribute(key, vnode.data[key])
     }
 
+    // Dom event listener
+    const events = (vnode.data || {}).on || {}
+    for (let key in events) {
+      el.addEventListener(key, events[key])
+    }
+
     if (typeof vnode.children === 'string') {
       el.textContent = vnode.children
     } else {
