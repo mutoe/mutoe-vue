@@ -16,11 +16,15 @@ class Vue {
   }
 
   $mount(root) {
-    const vnode = this.$options.render(this.createElement)
+    const { mounted, render } = this.$options
+    const vnode = render.call(this.proxy, this.createElement)
     this.$el = this.createDom(vnode)
     if (root) {
       root.appendChild(this.$el)
     }
+
+    mounted && mounted.call(this.proxy)
+
     return this
   }
 
