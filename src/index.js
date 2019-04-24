@@ -4,10 +4,10 @@ class Vue {
   constructor(options) {
     this.$options = options
 
-    const proxy = this.initDataProxy()
+    this.proxy = this.initDataProxy()
     this.initWatch()
 
-    return proxy
+    return this.proxy
   }
 
   $watch(key, cb) {
@@ -63,7 +63,9 @@ class Vue {
         return true
       },
       get: (_, key) => {
+        const methods = this.$options.methods || {}
         if (key in data) return data[key]
+        if (key in methods) return methods[key].bind(this.proxy)
         return this[key]
       },
     })
