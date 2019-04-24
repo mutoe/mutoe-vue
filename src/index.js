@@ -1,3 +1,5 @@
+import VNode from './vnode'
+
 class Vue {
   constructor(options) {
     this.$options = options
@@ -13,19 +15,56 @@ class Vue {
     this.dataNotifyChain[key].push(cb)
   }
 
+  $mount(root) {
+    const vnode = this.$options.render(this.createElement)
+    this.$el = this.createDom(vnode)
+    if (root) {
+      root.appendChild(this.$el)
+    }
+    return this
+  }
+
+  createElement(tag, data, children) {
+    return new VNode(tag, data, children)
+  }
+
+  createDom(vnode) {
+    const el = document.createElement(vnode.tag)
+    for (let key in vnode.data) {
+      el.setAttribute(key, vnode.data[key])
+    }
+
+    if (typeof vnode.children === 'string') {
+      el.textContent = vnode.children
+    } else {
+      vnode.children.forEach((child) => {
+        if (typeof child === 'string') {
+          el.textContent = child
+        } else {
+          el.appendChild(this.createDom(child))
+        }
+      })
+    }
+    return el
+  }
+
   initDataProxy() {
-    const data = this.$options.data()
+    const data = this.$options.data ? this.$options.data() : {}
 
     return new Proxy(this, {
       set: (_, key, value) => {
-        const oldVal = data[key]
-        data[key] = value
-        if (oldVal !== value) this.notifyDataChange(key, value, oldVal)
+        if (key in data) {
+          const oldVal = data[key]
+          data[key] = value
+          if (oldVal !== value) this.notifyDataChange(key, value, oldVal)
+        } else {
+          this[key] = value
+        }
         return true
       },
       get: (_, key) => {
-        if (key in this) return this[key]
-        return data[key]
+        if (key in data) return data[key]
+        return this[key]
       },
     })
   }
