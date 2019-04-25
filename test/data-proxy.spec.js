@@ -10,6 +10,7 @@ describe('Proxy test', function() {
       },
     })
     expect(vm.a).toEqual(2)
+
     vm.a = 3
     expect(vm.a).toEqual(3)
   })

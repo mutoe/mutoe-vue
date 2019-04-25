@@ -23,5 +23,7 @@ describe('Event', () => {
 
     btn.click()
     expect(callback).toHaveBeenCalled()
+
+    document.body.removeChild(vm.$el)
   })
 })

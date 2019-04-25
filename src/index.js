@@ -10,19 +10,24 @@ class Vue {
     return this.proxy
   }
 
-  $watch(key, cb) {
+  $watch(key, callback) {
     this.dataNotifyChain[key] = this.dataNotifyChain[key] || []
-    this.dataNotifyChain[key].push(cb)
+    this.dataNotifyChain[key].push(callback)
   }
 
   $mount(root) {
     const { mounted, render } = this.$options
+
     const vnode = render.call(this.proxy, this.createElement)
     this.$el = this.createDom(vnode)
+
     if (root) {
-      root.appendChild(this.$el)
+      const parent = root.parentElement
+      parent.removeChild(root)
+      parent.appendChild(this.$el)
     }
 
+    // Lifecycle: mounted
     mounted && mounted.call(this.proxy)
 
     return this
@@ -50,6 +55,7 @@ class Vue {
 
   createDom(vnode) {
     const el = document.createElement(vnode.tag)
+    el.__vue__ = this
     for (let key in vnode.data) {
       el.setAttribute(key, vnode.data[key])
     }
@@ -75,7 +81,7 @@ class Vue {
   }
 
   initDataProxy() {
-    const data = this.$options.data ? this.$options.data() : {}
+    const data = (this.$data = this.$options.data ? this.$options.data() : {})
 
     return new Proxy(this, {
       set: (_, key, value) => {
@@ -91,7 +97,10 @@ class Vue {
       get: (_, key) => {
         const methods = this.$options.methods || {}
         if (key in data) {
-          this.$watch(key, this.update.bind(this))
+          if (!this.collected) {
+            this.$watch(key, this.update.bind(this))
+            this.collected = true
+          }
           return data[key]
         }
         if (key in methods) return methods[key].bind(this.proxy)
