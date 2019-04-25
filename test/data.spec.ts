@@ -1,7 +1,7 @@
 import Vue from '../src/index'
 
-describe('Proxy test', () => {
-  test('should proxy vm._data.a = vm.a', () => {
+describe('Data proxy', () => {
+  test('Basic', () => {
     const vm = new Vue({
       data() {
         return {
@@ -10,5 +10,8 @@ describe('Proxy test', () => {
       },
     })
     expect(vm.a).toEqual(2)
+
+    vm.a = 3
+    expect(vm.a).toEqual(3)
   })
 })
