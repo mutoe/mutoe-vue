@@ -7,6 +7,7 @@ import VNode, { IVNodeData } from './vnode'
 // tslint:disable-next-line:class-name
 class _Vue<T extends Record<string, any>> {
   public $el: HTMLElement = document.createElement('null')
+  public $data: T = {} as T
 
   private $options: Partial<IOptions<T>>
 
@@ -15,6 +16,7 @@ class _Vue<T extends Record<string, any>> {
 
   constructor(options: Partial<IOptions<T>> = {}) {
     this.$options = options
+    this.$data = options.data ? options.data() : ({} as T)
 
     const proxy = this.initDataProxy()
     this.initWatcher()
@@ -70,13 +72,11 @@ class _Vue<T extends Record<string, any>> {
   }
 
   private initDataProxy(): T & Vue<T> {
-    const data = this.$options.data ? this.$options.data() : ({} as T)
-
     return new Proxy((this as unknown) as T & Vue<T>, {
       set: (_, key: keyof _Vue<T> | keyof T, value) => {
-        if (key in data) {
-          const oldVal = data[key]
-          data[key] = value
+        if (key in this.$data) {
+          const oldVal = this.$data[key]
+          this.$data[key] = value
           this.notifyDataChange(key as string, value, oldVal)
         } else {
           this[key as keyof _Vue<T>] = value
@@ -84,7 +84,7 @@ class _Vue<T extends Record<string, any>> {
         return true
       },
       get: (_, key: keyof T | keyof _Vue<T>) => {
-        if (key in data) return data[key]
+        if (key in this.$data) return this.$data[key]
         return this[key as keyof _Vue<T>]
       },
     })
