@@ -10,6 +10,7 @@ class _Vue<T extends Record<string, any>> {
   public $data: T = {} as T
 
   private $options: Partial<IOptions<T>>
+  private proxy: Vue<T>
 
   /** The object used to save the watchers callback */
   private dataNotifyChain: Record<string, IWatchCallback[]> = {}
@@ -18,19 +19,23 @@ class _Vue<T extends Record<string, any>> {
     this.$options = options
     this.$data = options.data ? options.data() : ({} as T)
 
-    const proxy = this.initDataProxy()
+    this.proxy = this.initDataProxy()
     this.initWatcher()
 
-    return proxy
+    return this.proxy
   }
 
   public $mount(root?: HTMLElement) {
-    if (this.$options.render) {
-      const vnode = this.$options.render(this.createElement)
+    const { mounted, render } = this.$options
+    if (render) {
+      const vnode = render.call(this.proxy, this.createElement)
       this.$el = this.createDom(vnode)
       if (root) {
         root.appendChild(this.$el)
       }
+
+      // call "mounted" lifecycle hook
+      if (mounted) mounted.call(this.proxy)
     }
     return this
   }
@@ -71,9 +76,9 @@ class _Vue<T extends Record<string, any>> {
     return el
   }
 
-  private initDataProxy(): T & Vue<T> {
-    return new Proxy((this as unknown) as T & Vue<T>, {
-      set: (_, key: keyof _Vue<T> | keyof T, value) => {
+  private initDataProxy(): Vue<T> {
+    return new Proxy((this as unknown) as Vue<T>, {
+      set: (_, key: keyof Vue<T>, value) => {
         if (key in this.$data) {
           const oldVal = this.$data[key]
           this.$data[key] = value
@@ -83,7 +88,7 @@ class _Vue<T extends Record<string, any>> {
         }
         return true
       },
-      get: (_, key: keyof T | keyof _Vue<T>) => {
+      get: (_, key: keyof Vue<T>) => {
         if (key in this.$data) return this.$data[key]
         return this[key as keyof _Vue<T>]
       },
@@ -113,6 +118,9 @@ const Vue = _Vue as new <T>(options?: Partial<IOptions<T>>) => Vue<T>
 
 interface IOptions<T extends Record<string, any>> {
   data: () => T
+  /** Lifecycle hook: mounted */
+  mounted: (this: T) => void
+  /** Render function */
   render: (h: ICreateElement) => VNode
 }
 
